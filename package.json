@@ -1,0 +1,12 @@
+{
+	"name": "distributed-zkp-generation-system",
+	"type": "module",
+	"private": true,
+	"devDependencies": {
+		"@types/bun": "latest",
+		"circomlib": "^2.0.5"
+	},
+	"peerDependencies": {
+		"typescript": "^5"
+	}
+}

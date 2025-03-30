@@ -1,0 +1,7 @@
+node_modules/
+zkp-artifacts/
+dist/
+build/
+.env*
+!.env.example
+.vscode/*
