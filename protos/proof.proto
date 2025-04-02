@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+service Proof {
+  rpc GenerateProof (ProofRequest) returns (ProofResponse);
+}
+
+message Transaction {
+  string sender = 1;
+  string receiver = 2;
+  string amount = 3;
+}
+
+message G1Point {
+  string x = 1;
+  string y = 2;
+  string z = 3;
+}
+
+message FieldExtPointCoordinate {
+  string x = 1;
+  string y = 2;
+}
+
+message ProofRequest {
+  repeated string startingBalance = 1;
+  repeated Transaction transactions = 2;
+}
+
+message ProofResponse {
+  G1Point pi_a = 1;
+  repeated FieldExtPointCoordinate pi_b = 2;
+  G1Point pi_c = 3;
+  string protocol = 4;
+  string curve = 5;
+  repeated string public_signals = 6;
+}

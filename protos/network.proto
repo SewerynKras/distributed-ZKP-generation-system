@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+service Network {
+  rpc Ping (PingMessage) returns (PongMessage);
+  rpc GetNodesList (Empty) returns (NodesList);
+  rpc JoinNetwork (JoinRequest) returns (JoinResponse);
+}
+
+message PingMessage {
+  string node_id = 1;
+}
+
+message PongMessage {
+  string node_id = 1;
+  int64 timestamp = 2;
+}
+
+message Empty {}
+
+message KnownNode {
+  string node_id = 1;
+  string host = 2;
+  int32 port = 3;
+}
+
+message NodesList {
+  repeated KnownNode nodes = 1;
+}
+
+message JoinRequest {
+  string node_id = 1;
+  string host = 2;
+  int32 port = 3;
+}
+
+message JoinResponse {
+  int64 timestamp = 2;
+}

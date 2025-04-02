@@ -9,6 +9,7 @@
 	},
 	"devDependencies": {
 		"@types/bun": "latest",
+		"@types/snarkjs": "^0.7.9",
 		"circomlib": "^2.0.5",
 		"grpc-tools": "^1.13.0",
 		"grpc_tools_node_protoc_ts": "^5.3.3"
@@ -17,6 +18,7 @@
 		"typescript": "^5"
 	},
 	"dependencies": {
-		"@grpc/grpc-js": "^1.13.2"
+		"@grpc/grpc-js": "^1.13.2",
+		"snarkjs": "^0.7.5"
 	}
 }
