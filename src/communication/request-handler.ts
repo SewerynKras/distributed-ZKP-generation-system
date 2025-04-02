@@ -1,12 +1,12 @@
 import type * as grpc from "@grpc/grpc-js";
 import {
 	G1Point,
-	FieldExtPointCoordinate,
+	Groth16PiBPair,
 	ProofResponse,
 	type ProofRequest,
 } from "../generated/grpc/proof_pb";
 import { generateProof } from "../computation/proof-generator";
-import type { Groth16Proof, NumericString } from "snarkjs";
+import type { NumericString } from "snarkjs";
 import {
 	type Empty,
 	type JoinRequest,
@@ -43,9 +43,7 @@ export async function generateProofHandler(
 		return coords.length === 3 && coords.every(isCoordPair);
 	}
 
-	function toGrpcG1Point(
-		point: Groth16Proof["pi_a"] | Groth16Proof["pi_c"],
-	): G1Point {
+	function toGrpcG1Point(point: NumericString[]): G1Point {
 		if (!isCoordTriplet(point)) {
 			throw new Error("Invalid coordinate");
 		}
@@ -56,23 +54,23 @@ export async function generateProofHandler(
 		return g1Point;
 	}
 
-	function toGrpcCoordinateList(
-		point: Groth16Proof["pi_b"],
-	): FieldExtPointCoordinate[] {
+	function toGrpcGroth16PiBPairList(
+		point: NumericString[][],
+	): Groth16PiBPair[] {
 		if (!isTripletOfCoordPairs(point)) {
 			throw new Error("Invalid coordinate");
 		}
-		const G1PointOverExtensionField0 = new FieldExtPointCoordinate();
-		G1PointOverExtensionField0.setX(point[0][0]);
-		G1PointOverExtensionField0.setY(point[0][1]);
+		const G1PointOverExtensionField0 = new Groth16PiBPair();
+		G1PointOverExtensionField0.setC0(point[0][0]);
+		G1PointOverExtensionField0.setC1(point[0][1]);
 
-		const G1PointOverExtensionField1 = new FieldExtPointCoordinate();
-		G1PointOverExtensionField1.setX(point[1][0]);
-		G1PointOverExtensionField1.setY(point[1][1]);
+		const G1PointOverExtensionField1 = new Groth16PiBPair();
+		G1PointOverExtensionField1.setC0(point[1][0]);
+		G1PointOverExtensionField1.setC1(point[1][1]);
 
-		const g1PointOverExtensionField = new FieldExtPointCoordinate();
-		g1PointOverExtensionField.setX(point[2][0]);
-		g1PointOverExtensionField.setY(point[2][1]);
+		const g1PointOverExtensionField = new Groth16PiBPair();
+		g1PointOverExtensionField.setC0(point[2][0]);
+		g1PointOverExtensionField.setC1(point[2][1]);
 
 		return [
 			G1PointOverExtensionField0,
@@ -83,7 +81,7 @@ export async function generateProofHandler(
 
 	const response = new ProofResponse();
 	response.setPiA(toGrpcG1Point(proof.pi_a));
-	response.setPiBList(toGrpcCoordinateList(proof.pi_b));
+	response.setPiBList(toGrpcGroth16PiBPairList(proof.pi_b));
 	response.setPiC(toGrpcG1Point(proof.pi_c));
 	response.setProtocol(proof.protocol);
 	response.setCurve(proof.curve);
