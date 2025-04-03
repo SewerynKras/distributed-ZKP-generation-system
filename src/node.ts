@@ -6,28 +6,34 @@ import {
 	getHandleJoinNetwork,
 	getHandlePing,
 } from "./communication/request-handler";
-import type { KnownNodesState } from "./network/node-manager";
+import { createInitialNodeState } from "./network/node-manager";
 import { NetworkService } from "./generated/grpc/network_grpc_pb";
-import type { NodeContext } from "./types";
+import type { NodeContext, NodeState } from "./types";
+import { createGrpcHandler } from "./communication/grpc-handler-wrapper";
 
 const PORT = Number.parseInt(process.env.PORT || "50051");
 
 const server = new grpc.Server();
 
-const context: NodeContext = {
-	nodeId: "TEST_NODE",
-	host: "localhost",
-	port: PORT,
-	knownNodes: new Map() as KnownNodesState,
+let currentNodeState: NodeState = createInitialNodeState();
+const getCurrentNodeState = (): NodeState => currentNodeState;
+const updateNodeState = (newState: NodeState): void => {
+	currentNodeState = newState;
+};
+
+const nodeContext: NodeContext = {
+	nodeId: "default-node-id",
+	getCurrentNodeState: getCurrentNodeState,
+	updateNodeState: updateNodeState,
 };
 
 server.addService(ProofService, {
-	generateProof: generateProofHandler,
+	generateProof: createGrpcHandler(generateProofHandler, nodeContext),
 });
 server.addService(NetworkService, {
-	getNodesList: getHandleGetNodesList(context),
-	joinNetwork: getHandleJoinNetwork(context),
-	ping: getHandlePing(context),
+	getNodesList: createGrpcHandler(getHandleGetNodesList, nodeContext),
+	joinNetwork: createGrpcHandler(getHandleJoinNetwork, nodeContext),
+	ping: createGrpcHandler(getHandlePing, nodeContext),
 });
 
 server.bindAsync(

@@ -10,13 +10,8 @@ if [ -z "$input_file" ]; then
     exit 1
 fi
 
-cd zkp-artifacts/Rollup_cpp
-echo "Generating witness..."
-./Rollup ../../$input_file witness.wtns
-cd ..
-
 echo "Generating proof..."
-snarkjs groth16 prove Rollup_0001.zkey ./Rollup_cpp/witness.wtns proof.json public.json
+snarkjs groth16 fullprove $input_file ./zkp-artifacts/Rollup_js/Rollup.wasm  ./zkp-artifacts/Rollup_0001.zkey  ./zkp-artifacts/proof.json ./zkp-artifacts/public.json
 
 end_time=$(date +%s%N)
 elapsed_time=$(( (end_time - start_time)/1000000 ))
