@@ -19,3 +19,7 @@ Use the `scripts/prove.sh` script to generate a proof for a given input file. Yo
 ## Verifying proofs
 
 Use the `scripts/verify.sh` script to verify the proof that's generated in the `zkp-artifacts` directory.
+
+## Reasoning for patching
+
+At the time of writing (2025-04-05, Bun 1.2.8), the node.js implementation of the `web-worker` package is not compatible with Bun, because it ships it's own Worker global object. This causes a segmentation fault when creating proofs using multiple threads. The workaround is to force Bun to use the global Worker object instead of the custom node.js implementation, by adding an extra export to the `package.json` file.

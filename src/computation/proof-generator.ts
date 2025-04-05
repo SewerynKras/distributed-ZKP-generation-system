@@ -38,8 +38,5 @@ export function generateProof(
 		},
 		circuit,
 		provingKey,
-		undefined,
-		undefined,
-		{ singleThread: true },
 	);
 }

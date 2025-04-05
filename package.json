@@ -20,5 +20,8 @@
 	"dependencies": {
 		"@grpc/grpc-js": "^1.13.2",
 		"snarkjs": "^0.7.5"
+	},
+	"patchedDependencies": {
+		"web-worker@1.2.0": "patches/web-worker@1.2.0.patch"
 	}
 }
