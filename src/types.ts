@@ -1,11 +1,12 @@
 import type * as grpc from "@grpc/grpc-js";
+import type { NetworkClient } from "./generated/grpc/network_grpc_pb";
 
 export type KnownNode = Readonly<{
 	nodeId: string;
 	host: string;
 	port: number;
-	status: "active" | "inactive" | "unknown";
-	lastSeen: number;
+	missedPings: number;
+	client: NetworkClient;
 }>;
 export type NodeState = ReadonlyMap<string, Readonly<KnownNode>>;
 export type NodeContext = Readonly<{
