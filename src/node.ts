@@ -47,3 +47,8 @@ server.bindAsync(
 		console.log(`🚀 gRPC Server running on port ${port}`);
 	},
 );
+
+process.on("SIGINT", () => {
+	console.log("Received SIGINT, shutting down gracefully");
+	server.forceShutdown();
+});

@@ -18,13 +18,7 @@ import {
 } from "../generated/grpc/network_pb";
 import { addNode, getKnownNodes } from "../network/node-manager";
 import type { RequestHandler } from "../types";
-
-function getErrorMessage(error: unknown): string {
-	if (Error.isError(error)) {
-		return error.message;
-	}
-	return String(error);
-}
+import { getErrorMessage } from "../utils";
 
 export const generateProofHandler: RequestHandler<
 	ProofRequest,
