@@ -26,6 +26,8 @@ const HOST = await (Bun.env.HOST ||
 	fetch("https://icanhazip.com")
 		.then((res) => res.text())
 		.then((ip) => ip.trim()));
+const PING_INTERVAL_MS = 5000;
+const UNANSWERED_PING_THRESHOLD = 3;
 
 console.log(`Starting node ${NODE_ID} on ${HOST}:${PORT}`);
 const server = new grpc.Server();
@@ -71,7 +73,11 @@ server.addService(NetworkService, {
 	ping: createGrpcHandler(getHandlePing, nodeContext),
 });
 
-const healthMonitor = startHealthMonitor(nodeContext);
+const healthMonitor = startHealthMonitor(
+	nodeContext,
+	PING_INTERVAL_MS,
+	UNANSWERED_PING_THRESHOLD,
+);
 
 server.bindAsync(
 	`0.0.0.0:${PORT}`,

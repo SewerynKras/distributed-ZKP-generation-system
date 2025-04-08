@@ -21,10 +21,11 @@ export function destroyClient(client: grpc.Client): void {
 	client.close();
 }
 
+const TIMEOUT_MS = 5000;
+
 export function sendPing(
 	senderNodeId: string,
 	receiverNode: KnownNode,
-	timeoutMs: number,
 ): Promise<PongMessage> {
 	const { promise, resolve, reject } = Promise.withResolvers<PongMessage>();
 	const client = receiverNode.client;
@@ -32,7 +33,7 @@ export function sendPing(
 	pingMessage.setNodeId(senderNodeId);
 
 	const deadline = new Date();
-	deadline.setMilliseconds(deadline.getMilliseconds() + timeoutMs);
+	deadline.setMilliseconds(deadline.getMilliseconds() + TIMEOUT_MS);
 	client.ping(
 		pingMessage,
 		new grpc.Metadata(),
@@ -62,7 +63,7 @@ export function sendJoinRequest(
 	joinRequest.setPort(senderPort);
 
 	const deadline = new Date();
-	deadline.setMilliseconds(deadline.getMilliseconds() + 5000);
+	deadline.setMilliseconds(deadline.getMilliseconds() + TIMEOUT_MS);
 	client.joinNetwork(
 		joinRequest,
 		new grpc.Metadata(),
@@ -85,7 +86,7 @@ export function sendGetNodesList(
 		Promise.withResolvers<KnownNodeProto[]>();
 	const client = receiverNode.client;
 	const deadline = new Date();
-	deadline.setMilliseconds(deadline.getMilliseconds() + 5000);
+	deadline.setMilliseconds(deadline.getMilliseconds() + TIMEOUT_MS);
 	client.getNodesList(
 		new Empty(),
 		new grpc.Metadata(),

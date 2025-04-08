@@ -4,7 +4,7 @@ import {
 } from "../communication/grpc-client";
 import type { KnownNode, NodeContext } from "../types";
 import { getErrorMessage } from "../utils";
-import { addNodes, cleanupNodeResources, createNode } from "./node-manager";
+import { addNodes, createNode, removeNodes } from "./node-manager";
 
 export async function discoverOtherNodes(context: NodeContext) {
 	console.debug("Starting node discovery");
@@ -14,6 +14,8 @@ export async function discoverOtherNodes(context: NodeContext) {
 	const seenNodes: Set<string> = new Set();
 	// what nodes have successfully passed the discovery phase
 	const discoveredNodes: KnownNode[] = [];
+	// what nodes have failed to respond
+	const failedNodes: KnownNode[] = [];
 
 	const initiallyKnownNodes = context.getCurrentNodeState();
 	for (const knownNode of initiallyKnownNodes.values()) {
@@ -26,7 +28,6 @@ export async function discoverOtherNodes(context: NodeContext) {
 		if (!node) {
 			continue;
 		}
-		seenNodes.add(node.nodeId);
 		try {
 			// First, announce ourselves to the node
 			await sendJoinRequest(context.nodeId, context.host, context.port, node);
@@ -42,18 +43,23 @@ export async function discoverOtherNodes(context: NodeContext) {
 				nodeQueue.push(
 					createNode(newNode.getNodeId(), newNode.getHost(), newNode.getPort()),
 				);
+				seenNodes.add(newNode.getNodeId());
 			}
 			discoveredNodes.push(node);
 		} catch (error) {
 			console.warn(
 				`Error discovering nodes from ${node.nodeId}: ${getErrorMessage(error)}`,
 			);
-			cleanupNodeResources(node);
+			failedNodes.push(node);
 		}
 	}
 	console.debug(
 		`Finished node discovery, found ${discoveredNodes.length} nodes`,
 	);
-	const currentNodeState = context.getCurrentNodeState();
-	return addNodes(currentNodeState, discoveredNodes);
+	const currentNodeState = context.getCurrentNodeState(); // combine previously known nodes with newly discovered ones
+	// and remove failed nodes (which could have been previously known or not)
+	return removeNodes(
+		addNodes(currentNodeState, discoveredNodes),
+		failedNodes.map((node) => node.nodeId),
+	);
 }

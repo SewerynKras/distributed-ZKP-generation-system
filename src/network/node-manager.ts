@@ -55,6 +55,22 @@ export function removeNode(currentState: NodeState, nodeId: string): NodeState {
 	return newState;
 }
 
+export function removeNodes(
+	currentState: NodeState,
+	nodeIds: string[],
+): NodeState {
+	const nextState = new Map(currentState);
+	for (const nodeId of nodeIds) {
+		const nodeToRemove = nextState.get(nodeId);
+		if (!nodeToRemove) {
+			continue;
+		}
+		cleanupNodeResources(nodeToRemove);
+		nextState.delete(nodeId);
+	}
+	return nextState;
+}
+
 export function cleanupNodeResources(node: KnownNode): void {
 	destroyClient(node.client);
 }
