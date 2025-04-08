@@ -18,8 +18,16 @@ import {
 	startHealthMonitor,
 	stopHealthMonitor,
 } from "./network/health-monitor";
+import { discoverOtherNodes } from "./network/node-discovery";
 
 const PORT = Number.parseInt(Bun.env.PORT || "50051");
+const NODE_ID = Bun.env.NODE_ID || "default-node-id";
+const HOST = await (Bun.env.HOST ||
+	fetch("https://icanhazip.com")
+		.then((res) => res.text())
+		.then((ip) => ip.trim()));
+
+console.log(`Starting node ${NODE_ID} on ${HOST}:${PORT}`);
 const server = new grpc.Server();
 
 let initiallyKnownNodes = undefined;
@@ -44,10 +52,15 @@ const updateNodeState = (newState: NodeState): void => {
 };
 
 const nodeContext: NodeContext = {
-	nodeId: "default-node-id",
+	nodeId: NODE_ID,
+	host: HOST,
+	port: PORT,
 	getCurrentNodeState: getCurrentNodeState,
 	updateNodeState: updateNodeState,
 };
+
+// Begin the discovery process
+discoverOtherNodes(nodeContext);
 
 server.addService(ProofService, {
 	generateProof: createGrpcHandler(generateProofHandler, nodeContext),

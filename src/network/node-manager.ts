@@ -21,9 +21,37 @@ export function addNode(
 	host: string,
 	port: number,
 ): NodeState {
+	if (currentState.has(nodeId)) {
+		return currentState;
+	}
 	const nodeDetails = createNode(nodeId, host, port);
 	const newState = new Map(currentState);
 	newState.set(nodeId, nodeDetails);
+	return newState;
+}
+
+export function addNodes(
+	currentState: NodeState,
+	nodes: KnownNode[],
+): NodeState {
+	const newState = new Map(currentState);
+	for (const node of nodes) {
+		if (newState.has(node.nodeId)) {
+			continue;
+		}
+		newState.set(node.nodeId, node);
+	}
+	return newState;
+}
+
+export function removeNode(currentState: NodeState, nodeId: string): NodeState {
+	const nodeToRemove = currentState.get(nodeId);
+	if (!nodeToRemove) {
+		return currentState;
+	}
+	cleanupNodeResources(nodeToRemove);
+	const newState = new Map(currentState);
+	newState.delete(nodeId);
 	return newState;
 }
 

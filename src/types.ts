@@ -11,6 +11,8 @@ export type KnownNode = Readonly<{
 export type NodeState = ReadonlyMap<string, Readonly<KnownNode>>;
 export type NodeContext = Readonly<{
 	nodeId: string;
+	host: string;
+	port: number;
 	getCurrentNodeState: () => NodeState;
 	updateNodeState: (newState: NodeState) => void;
 }>;
