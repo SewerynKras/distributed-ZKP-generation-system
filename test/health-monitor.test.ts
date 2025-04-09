@@ -1,5 +1,9 @@
 import { describe, it, expect, mock, afterEach, afterAll } from "bun:test";
-import type { KnownNode, NodeContext, NodeState } from "../src/types";
+import type {
+	KnownNode,
+	NodeState,
+	ComputationNodeContext,
+} from "../src/types";
 import type { NetworkClient } from "../src/generated/grpc/network_grpc_pb";
 import {
 	checkNodes,
@@ -8,6 +12,7 @@ import {
 } from "../src/network/health-monitor";
 import { createNodeState } from "../src/network/node-manager";
 import { mockModule } from "./utils";
+import type { ProofClient } from "../src/generated/grpc/proof_grpc_pb";
 
 const mockSendPing = mock();
 const clearClientMock = await mockModule(
@@ -22,7 +27,8 @@ const getMockNode = (nodeId: string, missedPings = 0): KnownNode => ({
 	host: "localhost",
 	port: 8080,
 	missedPings,
-	client: {} as NetworkClient,
+	networkClient: {} as NetworkClient,
+	proofClient: {} as ProofClient,
 });
 
 afterAll(() => {
@@ -36,38 +42,34 @@ describe("health-monitor", () => {
 
 	describe("pingNode", () => {
 		it("should return node with missedPings incremented by 1 if ping was unsuccessful", async () => {
-			const senderNodeId = "senderNodeId";
 			const targetNode = getMockNode("targetNodeId");
 			mockSendPing.mockImplementationOnce(() => {
 				throw new Error("Ping failed");
 			});
-			const result = await pingNode(senderNodeId, targetNode);
+			const result = await pingNode(targetNode);
 			expect(result.missedPings).toBe(1);
 		});
 		it("should reset missedPings to 0 if ping was successful", async () => {
-			const senderNodeId = "senderNodeId";
 			const targetNode = getMockNode("targetNodeId", 2);
 			mockSendPing.mockImplementationOnce(() => {});
-			const result = await pingNode(senderNodeId, targetNode);
+			const result = await pingNode(targetNode);
 			expect(result.missedPings).toBe(0);
 		});
 	});
 	describe("checkNodes", () => {
 		it("should call pingNode for each node", async () => {
-			const senderNodeId = "senderNodeId";
 			const targetNode1 = getMockNode("targetNode1");
 			const targetNode2 = getMockNode("targetNode2");
 			const targetNode3 = getMockNode("targetNode3");
 			const nodes = [targetNode1, targetNode2, targetNode3];
-			await checkNodes(senderNodeId, nodes);
+			await checkNodes(nodes);
 			expect(mockSendPing).toHaveBeenCalledTimes(3);
-			expect(mockSendPing).toHaveBeenCalledWith(senderNodeId, targetNode1);
-			expect(mockSendPing).toHaveBeenCalledWith(senderNodeId, targetNode2);
-			expect(mockSendPing).toHaveBeenCalledWith(senderNodeId, targetNode3);
+			expect(mockSendPing).toHaveBeenCalledWith(targetNode1);
+			expect(mockSendPing).toHaveBeenCalledWith(targetNode2);
+			expect(mockSendPing).toHaveBeenCalledWith(targetNode3);
 		});
 
 		it("should put nodes with enough missedPings to the nodesToRemove array", async () => {
-			const senderNodeId = "senderNodeId";
 			const targetNode1 = getMockNode("targetNode1", 0);
 			const targetNode2 = getMockNode("targetNode2", 2);
 			const targetNode3 = getMockNode("targetNode3", 0);
@@ -75,11 +77,7 @@ describe("health-monitor", () => {
 			mockSendPing.mockImplementation(() => {
 				throw new Error("Ping failed");
 			});
-			const { nodesToKeep, nodesToRemove } = await checkNodes(
-				senderNodeId,
-				nodes,
-				3,
-			);
+			const { nodesToKeep, nodesToRemove } = await checkNodes(nodes, 3);
 			expect(nodesToKeep.length).toBe(2);
 			expect(nodesToRemove.length).toBe(1);
 			expect(nodesToKeep[0]?.nodeId).toBe("targetNode1");
@@ -109,7 +107,7 @@ describe("health-monitor", () => {
 			const node0 = getMockNode("node0");
 			const node1 = getMockNode("node1");
 			const nodeState = createNodeState([node0, node1]);
-			const context: NodeContext = {
+			const context: ComputationNodeContext = {
 				nodeId: "nodeId",
 				host: "host",
 				port: 8080,
@@ -120,8 +118,8 @@ describe("health-monitor", () => {
 			expect(setIntervalMock).toHaveBeenCalledWith(expect.any(Function), 5000);
 			const [callback] = setIntervalMock.mock.calls[0] as [() => Promise<void>];
 			await callback();
-			expect(mockSendPing).toHaveBeenCalledWith("nodeId", node0);
-			expect(mockSendPing).toHaveBeenCalledWith("nodeId", node1);
+			expect(mockSendPing).toHaveBeenCalledWith(node0);
+			expect(mockSendPing).toHaveBeenCalledWith(node1);
 			expect(mockSendPing).toHaveBeenCalledTimes(2);
 		});
 		it("update state only with nodes that should be kept", async () => {
@@ -130,7 +128,7 @@ describe("health-monitor", () => {
 			const node2 = getMockNode("node1");
 			const nodeState = createNodeState([node0, node1, node2]);
 			const mockUpdateNodeState = mock();
-			const context: NodeContext = {
+			const context: ComputationNodeContext = {
 				nodeId: "nodeId",
 				host: "host",
 				port: 8080,

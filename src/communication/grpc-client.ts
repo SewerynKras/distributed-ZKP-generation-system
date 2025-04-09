@@ -6,15 +6,19 @@ import {
 	JoinRequest,
 	type JoinResponse,
 	type KnownNode as KnownNodeProto,
-	PingMessage,
 	type PongMessage,
 } from "../generated/grpc/network_pb";
+import { ProofClient } from "../generated/grpc/proof_grpc_pb";
 
-export function createClient(host: string, port: number): NetworkClient {
+export function createNetworkClient(host: string, port: number): NetworkClient {
 	return new NetworkClient(
 		`${host}:${port}`,
 		grpc.credentials.createInsecure(),
 	);
+}
+
+export function createProofClient(host: string, port: number): ProofClient {
+	return new ProofClient(`${host}:${port}`, grpc.credentials.createInsecure());
 }
 
 export function destroyClient(client: grpc.Client): void {
@@ -23,19 +27,14 @@ export function destroyClient(client: grpc.Client): void {
 
 const TIMEOUT_MS = 5000;
 
-export function sendPing(
-	senderNodeId: string,
-	receiverNode: KnownNode,
-): Promise<PongMessage> {
+export function sendPing(receiverNode: KnownNode): Promise<PongMessage> {
 	const { promise, resolve, reject } = Promise.withResolvers<PongMessage>();
-	const client = receiverNode.client;
-	const pingMessage = new PingMessage();
-	pingMessage.setNodeId(senderNodeId);
+	const client = receiverNode.networkClient;
 
 	const deadline = new Date();
 	deadline.setMilliseconds(deadline.getMilliseconds() + TIMEOUT_MS);
 	client.ping(
-		pingMessage,
+		new Empty(),
 		new grpc.Metadata(),
 		{ deadline },
 		(err, response) => {
@@ -56,7 +55,7 @@ export function sendJoinRequest(
 	receiverNode: KnownNode,
 ): Promise<JoinResponse> {
 	const { promise, resolve, reject } = Promise.withResolvers<JoinResponse>();
-	const client = receiverNode.client;
+	const client = receiverNode.networkClient;
 	const joinRequest = new JoinRequest();
 	joinRequest.setNodeId(senderNodeId);
 	joinRequest.setHost(senderHost);
@@ -84,7 +83,7 @@ export function sendGetNodesList(
 ): Promise<KnownNodeProto[]> {
 	const { promise, resolve, reject } =
 		Promise.withResolvers<KnownNodeProto[]>();
-	const client = receiverNode.client;
+	const client = receiverNode.networkClient;
 	const deadline = new Date();
 	deadline.setMilliseconds(deadline.getMilliseconds() + TIMEOUT_MS);
 	client.getNodesList(

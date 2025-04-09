@@ -12,7 +12,7 @@ import {
 	createNodeState,
 } from "./network/node-manager";
 import { NetworkService } from "./generated/grpc/network_grpc_pb";
-import type { NodeContext, NodeState } from "./types";
+import type { ComputationNodeContext, NodeState } from "./types";
 import { createGrpcHandler } from "./communication/grpc-handler-wrapper";
 import {
 	startHealthMonitor,
@@ -53,7 +53,7 @@ const updateNodeState = (newState: NodeState): void => {
 	currentNodeState = newState;
 };
 
-const nodeContext: NodeContext = {
+const nodeContext: ComputationNodeContext = {
 	nodeId: NODE_ID,
 	host: HOST,
 	port: PORT,

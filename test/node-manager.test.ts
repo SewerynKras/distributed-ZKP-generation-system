@@ -11,10 +11,13 @@ import {
 } from "../src/network/node-manager";
 import { mockModule } from "./utils";
 
-const mockCreateClient = mock(() => ({
+const mockCreateNetworkClient = mock(() => ({
 	ping: mock,
 	joinNetwork: mock,
 	getNodesList: mock,
+	close: mock,
+}));
+const mockCreateProofClient = mock(() => ({
 	close: mock,
 }));
 
@@ -22,7 +25,8 @@ const mockDestroyClient = mock();
 const clearMock = await mockModule(
 	"../src/communication/grpc-client.ts",
 	() => ({
-		createClient: mockCreateClient,
+		createNetworkClient: mockCreateNetworkClient,
+		createProofClient: mockCreateProofClient,
 		destroyClient: mockDestroyClient,
 	}),
 );
@@ -34,7 +38,8 @@ afterAll(() => {
 describe("node-manager", async () => {
 	afterEach(() => {
 		mockDestroyClient.mockClear();
-		mockCreateClient.mockClear();
+		mockCreateNetworkClient.mockClear();
+		mockCreateProofClient.mockClear();
 	});
 
 	describe("createNode", () => {
@@ -44,8 +49,8 @@ describe("node-manager", async () => {
 			expect(node.host).toBe("localhost");
 			expect(node.port).toBe(50051);
 			expect(node.missedPings).toBe(0);
-			expect(node.client).toBeDefined();
-			expect(mockCreateClient).toHaveBeenCalledWith("localhost", 50051);
+			expect(node.networkClient).toBeDefined();
+			expect(mockCreateNetworkClient).toHaveBeenCalledWith("localhost", 50051);
 		});
 	});
 	describe("addNode", () => {
@@ -53,25 +58,28 @@ describe("node-manager", async () => {
 			const node0 = createNode("test-node-0", "localhost", 50051);
 			const node1 = createNode("test-node-1", "localhost", 50051);
 			const state = createNodeState([node0, node1]);
-			mockCreateClient.mockClear();
+			mockCreateNetworkClient.mockClear();
+			mockCreateProofClient.mockClear();
 			const newState = addNode(state, "test-node-2", "localhost", 50051);
 			expect(newState.size).toBe(3);
 			expect(newState.get("test-node-0")).toBe(node0);
 			expect(newState.get("test-node-1")).toBe(node1);
 			expect(newState.get("test-node-2")).toBeDefined();
-			expect(mockCreateClient).toHaveBeenCalledWith("localhost", 50051);
-			expect(mockCreateClient).toHaveBeenCalledTimes(1);
+			expect(mockCreateNetworkClient).toHaveBeenCalledWith("localhost", 50051);
+			expect(mockCreateNetworkClient).toHaveBeenCalledTimes(1);
+			expect(mockCreateProofClient).toHaveBeenCalledWith("localhost", 50051);
+			expect(mockCreateProofClient).toHaveBeenCalledTimes(1);
 		});
 		it("should not add a node if it already exists", () => {
 			const node0 = createNode("test-node-0", "localhost", 50051);
 			const node1 = createNode("test-node-1", "localhost", 50051);
 			const state = createNodeState([node0, node1]);
-			mockCreateClient.mockClear();
+			mockCreateNetworkClient.mockClear();
 			const newState = addNode(state, "test-node-1", "localhost", 50051);
 			expect(newState.size).toBe(2);
 			expect(newState.get("test-node-0")).toBe(node0);
 			expect(newState.get("test-node-1")).toBe(node1);
-			expect(mockCreateClient).toHaveBeenCalledTimes(0);
+			expect(mockCreateNetworkClient).toHaveBeenCalledTimes(0);
 		});
 	});
 	describe("addNodes", () => {
@@ -79,7 +87,7 @@ describe("node-manager", async () => {
 			const node0 = createNode("test-node-0", "localhost", 50051);
 			const node1 = createNode("test-node-1", "localhost", 50051);
 			const state = createNodeState([node0, node1]);
-			mockCreateClient.mockClear();
+			mockCreateNetworkClient.mockClear();
 			const newState = addNodes(state, [
 				createNode("test-node-2", "localhost", 50051),
 				createNode("test-node-3", "localhost", 50051),
@@ -89,7 +97,7 @@ describe("node-manager", async () => {
 			expect(newState.get("test-node-1")).toBe(node1);
 			expect(newState.get("test-node-2")).toBeDefined();
 			expect(newState.get("test-node-3")).toBeDefined();
-			expect(mockCreateClient).toHaveBeenCalledTimes(2);
+			expect(mockCreateNetworkClient).toHaveBeenCalledTimes(2);
 		});
 
 		it("should only add unique nodes to the state", () => {
@@ -114,7 +122,7 @@ describe("node-manager", async () => {
 			const newState = removeNode(state, "test-node-1");
 			expect(newState.size).toBe(1);
 			expect(newState.get("test-node-0")).toBe(node0);
-			expect(mockDestroyClient).toHaveBeenCalledWith(node1.client);
+			expect(mockDestroyClient).toHaveBeenCalledWith(node1.networkClient);
 		});
 		it("should do nothing if the node is not in the state", () => {
 			const node0 = createNode("test-node-0", "localhost", 50051);
@@ -135,7 +143,7 @@ describe("node-manager", async () => {
 			const newState = removeNodes(state, ["test-node-1"]);
 			expect(newState.size).toBe(1);
 			expect(newState.get("test-node-0")).toBe(node0);
-			expect(mockDestroyClient).toHaveBeenCalledTimes(1);
+			expect(mockDestroyClient).toHaveBeenCalledTimes(2);
 		});
 		it("should do nothing if the node is not in the state", () => {
 			const node0 = createNode("test-node-0", "localhost", 50051);
@@ -152,9 +160,10 @@ describe("node-manager", async () => {
 	describe("cleanupNodeResources", () => {
 		it("should cleanup the node resources", () => {
 			const node = createNode("test-node", "localhost", 50051);
-			expect(node.client).toBeDefined();
+			expect(node.networkClient).toBeDefined();
 			cleanupNodeResources(node);
-			expect(mockDestroyClient).toHaveBeenCalledWith(node.client);
+			expect(mockDestroyClient).toHaveBeenCalledWith(node.networkClient);
+			expect(mockDestroyClient).toHaveBeenCalledWith(node.proofClient);
 		});
 	});
 	describe("getKnownNodes", () => {

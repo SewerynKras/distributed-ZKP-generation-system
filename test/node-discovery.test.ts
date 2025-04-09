@@ -5,6 +5,7 @@ import { discoverOtherNodes } from "../src/network/node-discovery";
 import { createNodeState } from "../src/network/node-manager";
 import { mockModule } from "./utils";
 import { removeNodes as realRemoveNodes } from "../src/network/node-manager";
+import type { ProofClient } from "../src/generated/grpc/proof_grpc_pb";
 
 function getMockNode(nodeId: string): KnownNode {
 	return {
@@ -12,7 +13,8 @@ function getMockNode(nodeId: string): KnownNode {
 		host: "localhost",
 		port: 8080,
 		missedPings: 0,
-		client: {} as NetworkClient,
+		networkClient: {} as NetworkClient,
+		proofClient: {} as ProofClient,
 	};
 }
 

@@ -2,11 +2,28 @@ import {
 	sendGetNodesList,
 	sendJoinRequest,
 } from "../communication/grpc-client";
-import type { KnownNode, NodeContext } from "../types";
+import type {
+	ComputationNodeContext,
+	CommonNodeContext,
+	KnownNode,
+	NodeState,
+} from "../types";
 import { getErrorMessage } from "../utils";
 import { addNodes, createNode, removeNodes } from "./node-manager";
 
-export async function discoverOtherNodes(context: NodeContext) {
+function isComputationNodeContext(
+	context: CommonNodeContext,
+): context is ComputationNodeContext {
+	return "nodeId" in context && "host" in context && "port" in context;
+}
+
+/**
+ * Recursively discovers other nodes in the network. If given a computation node context, it will
+ * also first try to join the other node's list of known nodes.
+ */
+export async function discoverOtherNodes(
+	context: CommonNodeContext,
+): Promise<NodeState> {
 	console.debug("Starting node discovery");
 	// what nodes are left to process
 	const nodeQueue: KnownNode[] = [];
@@ -29,12 +46,17 @@ export async function discoverOtherNodes(context: NodeContext) {
 			continue;
 		}
 		try {
-			// First, announce ourselves to the node
-			await sendJoinRequest(context.nodeId, context.host, context.port, node);
+			if (isComputationNodeContext(context)) {
+				// Announce ourselves to the node
+				await sendJoinRequest(context.nodeId, context.host, context.port, node);
+			}
 			// Then, ask for the list of nodes
 			const nodesList = await sendGetNodesList(node);
 			for (const newNode of nodesList) {
-				if (newNode.getNodeId() === context.nodeId) {
+				if (
+					isComputationNodeContext(context) &&
+					newNode.getNodeId() === context.nodeId
+				) {
 					continue;
 				}
 				if (seenNodes.has(newNode.getNodeId())) {
@@ -56,7 +78,8 @@ export async function discoverOtherNodes(context: NodeContext) {
 	console.debug(
 		`Finished node discovery, found ${discoveredNodes.length} nodes`,
 	);
-	const currentNodeState = context.getCurrentNodeState(); // combine previously known nodes with newly discovered ones
+	const currentNodeState = context.getCurrentNodeState();
+	// combine previously known nodes with newly discovered ones
 	// and remove failed nodes (which could have been previously known or not)
 	return removeNodes(
 		addNodes(currentNodeState, discoveredNodes),

@@ -1,4 +1,8 @@
-import { createClient, destroyClient } from "../communication/grpc-client";
+import {
+	createNetworkClient,
+	createProofClient,
+	destroyClient,
+} from "../communication/grpc-client";
 import type { KnownNode, NodeState } from "../types";
 
 export function createNode(
@@ -11,7 +15,8 @@ export function createNode(
 		host,
 		port,
 		missedPings: 0,
-		client: createClient(host, port),
+		networkClient: createNetworkClient(host, port),
+		proofClient: createProofClient(host, port),
 	});
 }
 
@@ -72,7 +77,8 @@ export function removeNodes(
 }
 
 export function cleanupNodeResources(node: KnownNode): void {
-	destroyClient(node.client);
+	destroyClient(node.networkClient);
+	destroyClient(node.proofClient);
 }
 
 export function getKnownNodes(currentState: NodeState): KnownNode[] {

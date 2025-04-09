@@ -13,7 +13,6 @@ import {
 	JoinResponse,
 	KnownNode,
 	NodesList,
-	type PingMessage,
 	PongMessage,
 } from "../generated/grpc/network_pb";
 import { addNode, getKnownNodes } from "../network/node-manager";
@@ -156,7 +155,7 @@ export const getHandleJoinNetwork: RequestHandler<
 	}
 };
 
-export const getHandlePing: RequestHandler<PingMessage, PongMessage> = async (
+export const getHandlePing: RequestHandler<Empty, PongMessage> = async (
 	_request,
 	context,
 ) => {

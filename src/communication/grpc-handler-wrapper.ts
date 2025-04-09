@@ -1,10 +1,14 @@
 import * as grpc from "@grpc/grpc-js";
-import type { HandlerResult, NodeContext, RequestHandler } from "../types";
+import type {
+	ComputationNodeContext,
+	HandlerResult,
+	RequestHandler,
+} from "../types";
 import { getErrorMessage } from "../utils";
 
 export function createGrpcHandler<RequestProto, ResponseProto>(
 	handler: RequestHandler<RequestProto, ResponseProto>,
-	context: NodeContext,
+	context: ComputationNodeContext,
 ): grpc.handleUnaryCall<RequestProto, ResponseProto> {
 	return async (
 		call: grpc.ServerUnaryCall<RequestProto, ResponseProto>,

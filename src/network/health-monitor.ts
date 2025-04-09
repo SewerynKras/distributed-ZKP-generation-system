@@ -1,5 +1,5 @@
 import { sendPing } from "../communication/grpc-client";
-import type { KnownNode, NodeContext } from "../types";
+import type { KnownNode, CommonNodeContext } from "../types";
 import { getErrorMessage } from "../utils";
 import {
 	cleanupNodeResources,
@@ -7,12 +7,9 @@ import {
 	getKnownNodes,
 } from "./node-manager";
 
-export async function pingNode(
-	senderNodeId: string,
-	targetNode: KnownNode,
-): Promise<KnownNode> {
+export async function pingNode(targetNode: KnownNode): Promise<KnownNode> {
 	try {
-		await sendPing(senderNodeId, targetNode);
+		await sendPing(targetNode);
 		// If ping was successful -> set node as active
 		console.debug(`Node ${targetNode.nodeId} responded to ping`);
 		return Object.assign({}, targetNode, {
@@ -30,13 +27,10 @@ export async function pingNode(
 }
 
 export async function checkNodes(
-	senderNodeId: string,
 	nodes: KnownNode[],
 	unansweredPingThreshold = 3,
 ) {
-	const updatedNodes = await Promise.all(
-		nodes.map((node) => pingNode(senderNodeId, node)),
-	);
+	const updatedNodes = await Promise.all(nodes.map(pingNode));
 	const nodesToKeep = [];
 	const nodesToRemove = [];
 	for (const node of updatedNodes) {
@@ -53,7 +47,7 @@ export async function checkNodes(
 }
 
 export function startHealthMonitor(
-	context: NodeContext,
+	context: CommonNodeContext,
 	pingIntervalMs = 5000,
 	unansweredPingThreshold = 3,
 ): NodeJS.Timeout {
@@ -61,7 +55,6 @@ export function startHealthMonitor(
 	return setInterval(async () => {
 		let currentNodeState = context.getCurrentNodeState();
 		const { nodesToKeep, nodesToRemove } = await checkNodes(
-			context.nodeId,
 			getKnownNodes(currentNodeState),
 			unansweredPingThreshold,
 		);

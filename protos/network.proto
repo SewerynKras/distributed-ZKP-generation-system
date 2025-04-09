@@ -1,13 +1,9 @@
 syntax = "proto3";
 
 service Network {
-  rpc Ping (PingMessage) returns (PongMessage);
+  rpc Ping (Empty) returns (PongMessage);
   rpc GetNodesList (Empty) returns (NodesList);
   rpc JoinNetwork (JoinRequest) returns (JoinResponse);
-}
-
-message PingMessage {
-  string node_id = 1;
 }
 
 message PongMessage {
