@@ -8,6 +8,41 @@ Make sure you have [Bun](https://bun.sh) installed.
 bun install
 ```
 
+## Running a node
+
+Required environment variables:
+
+- `CIRCUIT_PATH`: Path to the circuit file.
+- `PROVING_KEY_PATH`: Path to the proving key file.
+- `PORT`: Port to run the node on (default: 50051).
+- `NODE_ID`: Node ID (default: default-node-id).
+- `HOST`: Host to run the node on (default: ip of the current machine).
+- `KNOWN_NODES_PATH`: Path to the JSON file with initial known nodes (optional).
+
+Run the node with `bun run src/node.ts`.
+
+## Running a client
+
+Run the client with `bun run src/client.ts`. To generate and validate a proof, use the `prove` command:
+
+```sh
+bun run src/client.ts prove \
+  --verification-key <verification-key-file> \
+  --known-nodes <known-nodes-file> \
+  --input-file <input-file-1> \
+  --input-file <input-file-2> \
+  --output-file <output-file-1> \
+  --output-file <output-file-2>
+```
+
+To simply scan the network for nodes, use the `scan` command:
+
+```sh
+bun run src/client.ts scan --known-nodes <known-nodes-file>
+```
+
+Use the `--help` flag to see all available options.
+
 ## Compiling circuits
 
 Use the `scripts/compile.sh` script to compile the circuits. This will generate the necessary files in the `zkp-artifacts` directory.

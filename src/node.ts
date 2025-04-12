@@ -8,11 +8,10 @@ import {
 } from "./communication/request-handler";
 import {
 	cleanupNodeResources,
-	createNode,
-	createNodeState,
+	createInitialNodeState,
 } from "./network/node-manager";
 import { NetworkService } from "./generated/grpc/network_grpc_pb";
-import type { ComputationNodeContext, NodeState } from "./types";
+import type { ComputationNodeContext } from "./types";
 import { createGrpcHandler } from "./communication/grpc-handler-wrapper";
 import {
 	startHealthMonitor,
@@ -32,37 +31,26 @@ const UNANSWERED_PING_THRESHOLD = 3;
 console.log(`Starting node ${NODE_ID} on ${HOST}:${PORT}`);
 const server = new grpc.Server();
 
-let initiallyKnownNodes = undefined;
-if (Bun.env.KNOWN_NODES_PATH) {
-	initiallyKnownNodes = (await Bun.file(Bun.env.KNOWN_NODES_PATH).json()) as {
-		nodeId: string;
-		host: string;
-		port: number;
-	}[];
-	initiallyKnownNodes = initiallyKnownNodes.map((node) =>
-		createNode(node.nodeId, node.host, node.port),
-	);
-	console.debug(
-		`Loaded ${initiallyKnownNodes.length} nodes from ${Bun.env.KNOWN_NODES_PATH}`,
-	);
-}
+const maybeInitiallyKnownNodes =
+	!!Bun.env.KNOWN_NODES_PATH &&
+	(await Bun.file(Bun.env.KNOWN_NODES_PATH).json());
 
-let currentNodeState: NodeState = createNodeState(initiallyKnownNodes);
-const getCurrentNodeState = (): NodeState => currentNodeState;
-const updateNodeState = (newState: NodeState): void => {
-	currentNodeState = newState;
-};
-
+const nodeStateProxy = createInitialNodeState(maybeInitiallyKnownNodes);
 const nodeContext: ComputationNodeContext = {
 	nodeId: NODE_ID,
 	host: HOST,
 	port: PORT,
-	getCurrentNodeState: getCurrentNodeState,
-	updateNodeState: updateNodeState,
+	getCurrentNodeState: nodeStateProxy.get.bind(nodeStateProxy),
+	updateNodeState: nodeStateProxy.set.bind(nodeStateProxy),
 };
 
 // Begin the discovery process
-discoverOtherNodes(nodeContext);
+console.log("Starting node discovery process, this may take a while...");
+const discoveredState = await discoverOtherNodes(nodeContext);
+nodeStateProxy.set(discoveredState);
+console.debug(
+	`Finished node discovery, found ${nodeContext.getCurrentNodeState().size} nodes`,
+);
 
 server.addService(ProofService, {
 	generateProof: createGrpcHandler(generateProofHandler, nodeContext),

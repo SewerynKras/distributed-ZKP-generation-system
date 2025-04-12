@@ -91,3 +91,63 @@ export function createNodeState(nodes?: KnownNode[]): NodeState {
 	}
 	return new Map();
 }
+
+export function parseInitialNodeState(
+	unparsedNodes: unknown,
+): unparsedNodes is {
+	nodeId: string;
+	host: string;
+	port: number;
+}[] {
+	return (
+		Array.isArray(unparsedNodes) &&
+		unparsedNodes.every(
+			(node) =>
+				typeof node === "object" &&
+				node !== null &&
+				"nodeId" in node &&
+				typeof node.nodeId === "string" &&
+				"host" in node &&
+				typeof node.host === "string" &&
+				"port" in node &&
+				typeof node.port === "number",
+		)
+	);
+}
+
+/**
+ * Create the initial node state. If `unparsedNodes` is provided, it will be parsed and used as the initial state.
+ * Otherwise, an empty state will be created.
+ * Returns a proxy object that allows you to get and set the current state.
+ */
+export function createInitialNodeState(unparsedNodes?: unknown) {
+	if (!unparsedNodes) {
+		return {
+			_state: createNodeState(),
+			get() {
+				return this._state;
+			},
+			set(newState: NodeState) {
+				this._state = newState;
+			},
+		};
+	}
+	if (!parseInitialNodeState(unparsedNodes)) {
+		throw new Error(
+			"Invalid initial node state, make sure the file is a valid JSON array of objects with nodeId, host and port properties",
+		);
+	}
+	return {
+		_state: createNodeState(
+			unparsedNodes.map((node) =>
+				createNode(node.nodeId, node.host, node.port),
+			),
+		),
+		get() {
+			return this._state;
+		},
+		set(newState: NodeState) {
+			this._state = newState;
+		},
+	};
+}

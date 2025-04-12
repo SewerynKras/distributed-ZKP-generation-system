@@ -3,9 +3,11 @@ import {
 	addNode,
 	addNodes,
 	cleanupNodeResources,
+	createInitialNodeState,
 	createNode,
 	createNodeState,
 	getKnownNodes,
+	parseInitialNodeState,
 	removeNode,
 	removeNodes,
 } from "../src/network/node-manager";
@@ -189,6 +191,58 @@ describe("node-manager", async () => {
 		it("should create an empty node state if no nodes are provided", () => {
 			const state = createNodeState();
 			expect(state.size).toBe(0);
+		});
+	});
+	describe("parseInitialNodeState", () => {
+		it("should return true if the input is an array of objects with nodeId, host and port properties", () => {
+			expect(
+				parseInitialNodeState([
+					{ nodeId: "node0", host: "localhost", port: 50051 },
+					{ nodeId: "node1", host: "localhost", port: 50051 },
+				]),
+			).toBe(true);
+		});
+		it("should return false if the input is not an array", () => {
+			expect(parseInitialNodeState(null)).toBe(false);
+			expect(parseInitialNodeState(undefined)).toBe(false);
+			expect(parseInitialNodeState({})).toBe(false);
+			expect(parseInitialNodeState("test")).toBe(false);
+			expect(parseInitialNodeState(123)).toBe(false);
+			expect(parseInitialNodeState(true)).toBe(false);
+			expect(parseInitialNodeState(false)).toBe(false);
+		});
+		it("should return false if any of the objects in the array does not have nodeId, host and port properties", () => {
+			expect(
+				parseInitialNodeState([
+					{ nodeId: "node0", host: "localhost", port: 50051 },
+					{ nodeId: "node1", host: "localhost", port: 50051 },
+					{ nodeId: "node2", host: "localhost", port: 50051 },
+					{ nodeiD: "node3", host: "localhost", port: 50051 },
+				]),
+			).toBe(false);
+		});
+	});
+	describe("createInitialNodeState", () => {
+		it("should create an empty node state if no nodes are provided", () => {
+			const state = createInitialNodeState();
+			expect(state.get().size).toBe(0);
+			state.set(createNodeState([createNode("node0", "localhost", 50051)]));
+			expect(state.get().size).toBe(1);
+			expect(state.get().get("node0")).toBeDefined();
+		});
+		it("should create a node state from an array of nodes", () => {
+			const state = createInitialNodeState([
+				{ nodeId: "node0", host: "localhost", port: 50051 },
+				{ nodeId: "node1", host: "localhost", port: 50051 },
+			]);
+			expect(state.get().size).toBe(2);
+			expect(state.get().get("node0")).toBeDefined();
+			expect(state.get().get("node1")).toBeDefined();
+		});
+		it("should throw an error if the input is not an array of objects with nodeId, host and port properties", () => {
+			expect(() => createInitialNodeState("test")).toThrowError(
+				"Invalid initial node state, make sure the file is a valid JSON array of objects with nodeId, host and port properties",
+			);
 		});
 	});
 });

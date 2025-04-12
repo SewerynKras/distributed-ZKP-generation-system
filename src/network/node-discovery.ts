@@ -24,7 +24,6 @@ function isComputationNodeContext(
 export async function discoverOtherNodes(
 	context: CommonNodeContext,
 ): Promise<NodeState> {
-	console.debug("Starting node discovery");
 	// what nodes are left to process
 	const nodeQueue: KnownNode[] = [];
 	// what nodes have been processed (successfully or not)
@@ -75,9 +74,6 @@ export async function discoverOtherNodes(
 			failedNodes.push(node);
 		}
 	}
-	console.debug(
-		`Finished node discovery, found ${discoveredNodes.length} nodes`,
-	);
 	const currentNodeState = context.getCurrentNodeState();
 	// combine previously known nodes with newly discovered ones
 	// and remove failed nodes (which could have been previously known or not)
