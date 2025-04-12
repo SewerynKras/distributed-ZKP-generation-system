@@ -11,7 +11,6 @@ export async function pingNode(targetNode: KnownNode): Promise<KnownNode> {
 	try {
 		await sendPing(targetNode);
 		// If ping was successful -> set node as active
-		console.debug(`Node ${targetNode.nodeId} responded to ping`);
 		return Object.assign({}, targetNode, {
 			missedPings: 0,
 		});
@@ -51,7 +50,6 @@ export function startHealthMonitor(
 	pingIntervalMs = 5000,
 	unansweredPingThreshold = 3,
 ): NodeJS.Timeout {
-	console.debug("Starting health monitor");
 	return setInterval(async () => {
 		let currentNodeState = context.getCurrentNodeState();
 		const { nodesToKeep, nodesToRemove } = await checkNodes(

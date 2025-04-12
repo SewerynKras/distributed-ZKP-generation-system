@@ -44,7 +44,6 @@ const nodeContext: ComputationNodeContext = {
 	updateNodeState: nodeStateProxy.set.bind(nodeStateProxy),
 };
 
-// Begin the discovery process
 console.log("Starting node discovery process, this may take a while...");
 const discoveredState = await discoverOtherNodes(nodeContext);
 nodeStateProxy.set(discoveredState);

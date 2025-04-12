@@ -14,6 +14,7 @@ export function createGrpcHandler<RequestProto, ResponseProto>(
 		call: grpc.ServerUnaryCall<RequestProto, ResponseProto>,
 		callback: grpc.sendUnaryData<ResponseProto>,
 	): Promise<void> => {
+		const startingTime = Date.now();
 		try {
 			const result: HandlerResult<ResponseProto> = await handler(
 				call.request,
@@ -38,6 +39,10 @@ export function createGrpcHandler<RequestProto, ResponseProto>(
 				code: grpc.status.INTERNAL,
 				message: `Internal server error: ${errorMessage}`,
 			});
+		} finally {
+			console.log(
+				`[${call.getPath()}] Finished handling request in ${Date.now() - startingTime}ms`,
+			);
 		}
 	};
 }
