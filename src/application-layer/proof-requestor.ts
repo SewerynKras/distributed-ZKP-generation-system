@@ -6,6 +6,7 @@ import {
 	type ProofResponse,
 } from "../generated/grpc/proof_pb";
 import type { KnownNode } from "../types";
+import { Metadata } from "@grpc/grpc-js";
 
 export type ProofInput = {
 	startingBalance: string[];
@@ -71,16 +72,24 @@ export function mapInputToGrpcRequest(input: ProofInput): ProofRequest {
 export async function sendProofRequest(
 	node: KnownNode,
 	input: ProofInput,
+	timeoutMs = 30000,
 ): Promise<ProofResponse> {
 	const request = mapInputToGrpcRequest(input);
 	const { promise, resolve, reject } = Promise.withResolvers<ProofResponse>();
-	node.proofClient.generateProof(request, (err, response) => {
-		if (err) {
-			reject(err);
-			return;
-		}
-		resolve(response);
-	});
+	const deadline = new Date();
+	deadline.setMilliseconds(deadline.getMilliseconds() + timeoutMs);
+	node.proofClient.generateProof(
+		request,
+		new Metadata(),
+		{ deadline },
+		(err, response) => {
+			if (err) {
+				reject(err);
+				return;
+			}
+			resolve(response);
+		},
+	);
 	return promise;
 }
 

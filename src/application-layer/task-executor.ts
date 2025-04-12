@@ -21,9 +21,10 @@ export function createProofTask(
 	input: ProofInput,
 	outputFile: string,
 	verificationKey: string,
+	timeoutMs = 30000,
 ): Task<KnownNode, ProofTaskResult> {
 	return async (node: KnownNode) => {
-		const response = await sendProofRequest(node, input);
+		const response = await sendProofRequest(node, input, timeoutMs);
 		const parsedProof = mapGrpcResponseToGroth16Proof(response);
 		if (
 			!verifyPublicSignals(

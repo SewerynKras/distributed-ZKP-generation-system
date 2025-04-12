@@ -36,6 +36,11 @@ const parsedArgs = parseArgs({
 			type: "string",
 			short: "k",
 		},
+		timeout: {
+			type: "string",
+			short: "t",
+			default: "30000",
+		},
 	},
 	strict: true,
 	allowPositionals: true,
@@ -72,6 +77,7 @@ type CliArgs = {
 	"input-file"?: string[];
 	"output-file"?: string[];
 	"verification-key"?: string;
+	timeout: string;
 	help?: boolean;
 };
 
@@ -92,6 +98,7 @@ Options:
   -i, --input-file <file>       Path to the JSON input file for proof generation. (Required for prove, can be provided multiple times)
   -o, --output-file <file>      Path to the JSON file to write the resulting proof. (Required for prove, must be provided as many times as there are input files)
   -k, --verification-key <file> Path to the verification key JSON file. (Required for prove)
+  -t, --timeout <ms>            Timeout for the proof generation process in milliseconds. (Default: 30000)
   -h, --help                    Show this help message.`);
 		return;
 	}
@@ -127,16 +134,31 @@ Options:
 		),
 	);
 	const verificationKey = await Bun.file(values["verification-key"]).json();
+	let timeoutAsInt = Number.parseInt(values.timeout);
+	if (Number.isNaN(timeoutAsInt)) {
+		console.warn("Invalid timeout value, using default value (30000ms)");
+		timeoutAsInt = 30000;
+	}
 	// parse before connecting to the network to avoid unnecessary network requests if the input file is invalid
 	const tasks = parsedInputFiles.map((inputFile, index) => {
 		const outputFile = values["output-file"]?.[index];
 		if (!outputFile) {
 			throw new Error("Not enough output files provided");
 		}
-		return createProofTask(inputFile, outputFile, verificationKey);
+		return createProofTask(
+			inputFile,
+			outputFile,
+			verificationKey,
+			timeoutAsInt,
+		);
 	});
 	// now it's safe to initialize the node context
 	const nodeContext = await initNode(values["known-nodes"]);
+	if (nodeContext.getCurrentNodeState().size === 0) {
+		throw new Error(
+			"No working nodes found, make sure the provided nodes are online and reachable",
+		);
+	}
 	const results = await executeTasks(tasks, nodeContext);
 	console.log("All tasks completed, writing results to output files...");
 	for (const { proof, publicSignals, outputFile } of results) {
