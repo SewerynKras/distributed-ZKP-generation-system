@@ -21,6 +21,15 @@ Required environment variables:
 
 Run the node with `bun run src/node.ts`.
 
+### Simulating malicious nodes
+
+To test the system's resilience against malicious nodes, you can configure a node to act as a malicious actor, which will respond with incorrect proofs. This is done by setting the `SIMULATE_MALICIOUS_NODE` environment variable.
+
+```sh
+export SIMULATE_MALICIOUS_NODE=1
+bun run src/node.ts
+```
+
 ## Running a client
 
 Run the client with `bun run src/client.ts`. To generate and validate a proof, use the `prove` command:
@@ -33,6 +42,17 @@ bun run src/client.ts prove \
   --input-file <input-file-2> \
   --output-file <output-file-1> \
   --output-file <output-file-2>
+```
+
+If you're evaluating the performance of the system, you can use the `--metrics-file` option to save the metrics to a file. The metrics will be saved in Newline Delimited JSON format.
+
+```sh
+bun run src/client.ts prove \
+  --verification-key <verification-key-file> \
+  --known-nodes <known-nodes-file> \
+  --input-file <input-file-1> \
+  --output-file <output-file-1> \
+  --metrics-file <metrics-file>
 ```
 
 To simply scan the network for nodes, use the `scan` command:

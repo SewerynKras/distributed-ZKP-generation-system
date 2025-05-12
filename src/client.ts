@@ -41,6 +41,9 @@ const parsedArgs = parseArgs({
 			short: "t",
 			default: "30000",
 		},
+		"metrics-file": {
+			type: "string",
+		},
 	},
 	strict: true,
 	allowPositionals: true,
@@ -78,6 +81,7 @@ type CliArgs = {
 	"output-file"?: string[];
 	"verification-key"?: string;
 	timeout: string;
+	"metrics-file"?: string;
 	help?: boolean;
 };
 
@@ -99,6 +103,7 @@ Options:
   -o, --output-file <file>      Path to the JSON file to write the resulting proof. (Required for prove, must be provided as many times as there are input files)
   -k, --verification-key <file> Path to the verification key JSON file. (Required for prove)
   -t, --timeout <ms>            Timeout for the proof generation process in milliseconds. (Default: 30000)
+  --metrics-file <file>         Path to the NDJSON (Newline Delimited JSON) file to write metrics data. If not provided, metrics will be printed to the console.
   -h, --help                    Show this help message.`);
 		return;
 	}
@@ -159,7 +164,9 @@ Options:
 			"No working nodes found, make sure the provided nodes are online and reachable",
 		);
 	}
-	const results = await executeTasks(tasks, nodeContext);
+	const results = await executeTasks(tasks, nodeContext, {
+		metricsFile: values["metrics-file"],
+	});
 	console.log("All tasks completed, writing results to output files...");
 	for (const { proof, publicSignals, outputFile } of results) {
 		await Bun.file(outputFile).write(JSON.stringify({ proof, publicSignals }));

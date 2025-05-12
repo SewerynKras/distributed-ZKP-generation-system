@@ -59,13 +59,49 @@ function waitOneEventLoopCycle() {
 	return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
+type Metric = {
+	nodeId: string;
+	timestamp: number;
+	operation: "START" | "SUCCESS" | "FAIL";
+};
+
+/**
+ * If filepath is provided, setup metrics file and return a function to
+ * append to it and a function to close the file.
+ * If no filepath is provided, return a function to append to the console
+ * and an empty cleanup function.
+ */
+function setupMetrics(filePath?: string) {
+	if (filePath) {
+		const file = Bun.file(filePath);
+		const writer = file.writer();
+		return {
+			append: (metric: Metric) => {
+				writer.write(JSON.stringify(metric));
+				writer.write("\n");
+			},
+			cleanup: () => writer.end(),
+		};
+	}
+	return {
+		append: (metric: Metric) => console.log(JSON.stringify(metric)),
+		// no-op
+		cleanup: () => {},
+	};
+}
 export async function executeTasks<T>(
 	tasks: ((node: KnownNode) => Promise<T>)[],
 	nodeContext: ConsumerNodeContext,
+	options: {
+		metricsFile?: string;
+	} = {},
 ): Promise<T[]> {
 	const results: T[] = [];
 	const expectedResults = tasks.length;
 	const idleNodes = [...nodeContext.getCurrentNodeState().values()];
+	const { append: appendMetrics, cleanup: cleanupMetrics } = setupMetrics(
+		options.metricsFile,
+	);
 	while (results.length < expectedResults) {
 		const idleNode = idleNodes.pop();
 		if (!idleNode) {
@@ -85,7 +121,17 @@ export async function executeTasks<T>(
 		const executeTask = async () => {
 			try {
 				console.log(`Node ${idleNode.nodeId} executing task`);
+				appendMetrics({
+					nodeId: idleNode.nodeId,
+					timestamp: Date.now(),
+					operation: "START",
+				});
 				const result = await task(idleNode);
+				appendMetrics({
+					nodeId: idleNode.nodeId,
+					timestamp: Date.now(),
+					operation: "SUCCESS",
+				});
 				results.push(result);
 				idleNodes.push(idleNode);
 				console.log(
@@ -95,6 +141,11 @@ export async function executeTasks<T>(
 				console.error(
 					`Error processing task by node ${idleNode.nodeId}: ${getErrorMessage(error)}`,
 				);
+				appendMetrics({
+					nodeId: idleNode.nodeId,
+					timestamp: Date.now(),
+					operation: "FAIL",
+				});
 				// requeue the task
 				tasks.push(task);
 				// don't add the node to the idle queue, assume it's broken
@@ -105,5 +156,6 @@ export async function executeTasks<T>(
 		};
 		executeTask();
 	}
+	cleanupMetrics();
 	return results;
 }
