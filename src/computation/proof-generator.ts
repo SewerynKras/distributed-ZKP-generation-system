@@ -27,16 +27,49 @@ function transactionToPublicInput(transaction: Transaction) {
 	return [transaction.sender, transaction.receiver, transaction.amount];
 }
 
-export function generateProof(
+let generateProof: (
 	startingBalance: string[],
 	transactions: Transaction[],
-) {
-	return snarkjs.groth16.fullProve(
-		{
-			startingBalance: startingBalance,
-			transactions: transactions.map(transactionToPublicInput),
-		},
-		circuit,
-		provingKey,
+) => Promise<{
+	proof: snarkjs.Groth16Proof;
+	publicSignals: string[];
+}>;
+
+if (Bun.env.SIMULATE_MALICIOUS_NODE) {
+	console.warn(
+		"⚠️ WARNING: Running a malicious node simulation. This is node will generate fake proofs.",
 	);
+	// For testing purposes, simulate a malicious node that generates a proof for different inputs
+	generateProof = (startingBalance: string[], transactions: Transaction[]) => {
+		const fakeBalances = startingBalance.map(() =>
+			Math.floor(Math.random() * 1000 + 5000).toString(),
+		);
+		const fakeTransactions = transactions.map((transaction) => ({
+			sender: transaction.sender,
+			receiver: transaction.receiver,
+			amount: Math.floor(Math.random() * 10).toString(),
+		}));
+		return snarkjs.groth16.fullProve(
+			{
+				startingBalance: fakeBalances,
+				transactions: fakeTransactions.map(transactionToPublicInput),
+			},
+			circuit,
+			provingKey,
+		);
+	};
+} else {
+	// For production, generate a proof for the actual inputs
+	// This is the default behavior
+	generateProof = (startingBalance: string[], transactions: Transaction[]) => {
+		return snarkjs.groth16.fullProve(
+			{
+				startingBalance: startingBalance,
+				transactions: transactions.map(transactionToPublicInput),
+			},
+			circuit,
+			provingKey,
+		);
+	};
 }
+export { generateProof };
