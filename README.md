@@ -78,3 +78,36 @@ Use the `scripts/verify.sh` script to verify the proof that's generated in the `
 ## Reasoning for patching
 
 At the time of writing (2025-04-05, Bun 1.2.8), the node.js implementation of the `web-worker` package is not compatible with Bun, because it ships it's own Worker global object. This causes a segmentation fault when creating proofs using multiple threads. The workaround is to force Bun to use the global Worker object instead of the custom node.js implementation, by adding an extra export to the `package.json` file.
+
+## Deploying a node to a remote server
+
+Before deploying a node to a remote server, make sure to compile the application using the following command:
+
+```sh
+bun build --compile --minify --sourcemap src/node.ts  --outfile zkp-node
+```
+
+This will create a `zkp-node` single binary executable in the current directory. 
+
+Make sure to copy the `zkp-node` executable and the relevant circuit and proving key files to the remote server. You can use `scp` or any other file transfer method to copy the files.
+
+```sh
+scp zkp-node user@remote-server:/app/zkp-node
+# Copy the circuit and proving key files
+scp zkp-artifacts/Rollup_js/Rollup.wasm user@remote-server:/app/circuit.wasm
+scp zkp-artifacts/Rollup_0001.zkey user@remote-server:/app/proving.key
+# Copy the known nodes file if you have one
+scp known_nodes.json user@remote-server:/app/known_nodes.json
+# Save the node id to a file
+ssh user@remote-server "echo 'remote-node-id' > /app/node_id.txt"
+```
+
+Once the files are copied, SSH into the remote server and run the node using the following command:
+
+```sh
+CIRCUIT_PATH="/app/circuit.wasm" \
+PROVING_KEY_PATH="/app/proving.key" \
+NODE_ID="$(cat /app/node_id.txt)" \
+KNOWN_NODES_PATH="/app/known_nodes.json" \
+./zkp-node
+```
