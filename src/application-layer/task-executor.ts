@@ -60,6 +60,7 @@ function waitOneEventLoopCycle() {
 }
 
 type Metric = {
+	taskId: number;
 	nodeId: string;
 	timestamp: number;
 	operation: "START" | "SUCCESS" | "FAIL";
@@ -89,6 +90,9 @@ function setupMetrics(filePath?: string) {
 		cleanup: () => {},
 	};
 }
+
+let globalTaskId = 0;
+
 export async function executeTasks<T>(
 	tasks: ((node: KnownNode) => Promise<T>)[],
 	nodeContext: ConsumerNodeContext,
@@ -119,15 +123,18 @@ export async function executeTasks<T>(
 			continue;
 		}
 		const executeTask = async () => {
+			const taskId = globalTaskId++;
 			try {
 				console.log(`Node ${idleNode.nodeId} executing task`);
 				appendMetrics({
+					taskId,
 					nodeId: idleNode.nodeId,
 					timestamp: Date.now(),
 					operation: "START",
 				});
 				const result = await task(idleNode);
 				appendMetrics({
+					taskId,
 					nodeId: idleNode.nodeId,
 					timestamp: Date.now(),
 					operation: "SUCCESS",
@@ -142,6 +149,7 @@ export async function executeTasks<T>(
 					`Error processing task by node ${idleNode.nodeId}: ${getErrorMessage(error)}`,
 				);
 				appendMetrics({
+					taskId,
 					nodeId: idleNode.nodeId,
 					timestamp: Date.now(),
 					operation: "FAIL",
