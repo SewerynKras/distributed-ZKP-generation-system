@@ -15,10 +15,10 @@
 		"grpc_tools_node_protoc_ts": "^5.3.3"
 	},
 	"peerDependencies": {
-		"typescript": "^5"
+		"typescript": "^5.8.3"
 	},
 	"dependencies": {
-		"@grpc/grpc-js": "^1.13.2",
+		"@grpc/grpc-js": "^1.13.3",
 		"snarkjs": "^0.7.5"
 	},
 	"patchedDependencies": {
