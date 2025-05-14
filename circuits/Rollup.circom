@@ -88,4 +88,4 @@ template Rollup(nTx, nAcc) {
     }
 }
 
-component main {public [startingBalance, transactions]} = Rollup(100, 10);
+component main {public [startingBalance, transactions]} = Rollup(1000, 10);
