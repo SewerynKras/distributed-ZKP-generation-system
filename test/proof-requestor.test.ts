@@ -14,6 +14,7 @@ import {
 	Groth16PiBPair,
 	ProofResponse,
 } from "../src/generated/grpc/proof_pb";
+import type * as grpc from "@grpc/grpc-js";
 
 describe("proof-requestor", () => {
 	describe("parseInputFile", () => {
@@ -109,8 +110,18 @@ describe("proof-requestor", () => {
 				missedPings: 0,
 				networkClient: {} as NetworkClient,
 				proofClient: {
-					generateProof: mock((_, cb) =>
-						cb(null, null),
+					generateProof: mock(
+						// cover all 3 overloads of the generateProof method
+						(_request, metaOrCallback, optionsOrCallback?, maybeCallback?) => {
+							if (typeof metaOrCallback === "function") {
+								metaOrCallback(null, new ProofResponse());
+							} else if (typeof optionsOrCallback === "function") {
+								optionsOrCallback(null, new ProofResponse());
+							} else if (maybeCallback) {
+								maybeCallback(null, new ProofResponse());
+							}
+							return {} as grpc.ClientUnaryCall;
+						},
 					) as ProofClient["generateProof"],
 				} as ProofClient,
 			};
@@ -126,6 +137,8 @@ describe("proof-requestor", () => {
 			await sendProofRequest(node, input);
 			expect(node.proofClient.generateProof).toHaveBeenCalledWith(
 				request,
+				expect.any(Object), // metadata
+				expect.any(Object), // options
 				expect.any(Function),
 			);
 		});
