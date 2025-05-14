@@ -27,6 +27,7 @@ const HOST = await (Bun.env.HOST ||
 		.then((ip) => ip.trim()));
 const PING_INTERVAL_MS = 5000;
 const UNANSWERED_PING_THRESHOLD = 3;
+const BIND_ADDRESS = Bun.env.BIND_ADDRESS || "[::]";
 
 console.log(`Starting node ${NODE_ID} on ${HOST}:${PORT}`);
 const server = new grpc.Server();
@@ -67,7 +68,7 @@ const healthMonitor = startHealthMonitor(
 );
 
 server.bindAsync(
-	`0.0.0.0:${PORT}`,
+	`${BIND_ADDRESS}:${PORT}`,
 	grpc.ServerCredentials.createInsecure(),
 	(err, port) => {
 		if (err) {

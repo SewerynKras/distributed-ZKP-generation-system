@@ -16,8 +16,12 @@ Required environment variables:
 - `PROVING_KEY_PATH`: Path to the proving key file.
 - `PORT`: Port to run the node on (default: 50051).
 - `NODE_ID`: Node ID (default: default-node-id).
-- `HOST`: Host to run the node on (default: ip of the current machine).
-- `KNOWN_NODES_PATH`: Path to the JSON file with initial known nodes (optional).
+- `HOST`: Hostname that will be advertised to other nodes (default: ip of the machine).
+
+Optional environment variables:
+- `KNOWN_NODES_PATH`: Path to the JSON file with initial known nodes.
+- `SIMULATE_MALICIOUS_NODE`: Set to 1 to simulate a malicious node.
+- `BIND_ADDRESS`: Local address to bind the node to (default: `[::]`). 
 
 Run the node with `bun run src/node.ts`.
 
